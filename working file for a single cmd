@@ -1,0 +1,24 @@
+import serial
+import time
+
+ser=serial.Serial(port='COM5',baudrate=57600)
+cmd=[0xA1,0x2D,0x00,0x00,0x00,0x10]
+
+ser.write(serial.to_bytes(cmd))
+time.sleep(1)
+data=b''
+timeout=time.time()+3.0
+while ser.inWaiting() or time.time()-timeout<0.0:
+    if ser.inWaiting()>0:
+        data+=ser.read(ser.inWaiting())
+        timeout=time.time()+3.0
+    else:
+        print('waiting.......')
+
+ser.flushInput()
+print("Response: ",hex(int.from_bytes(data,byteorder='little'))[0:6])
+print("Data: ",hex(int.from_bytes(data,byteorder='big')))
+
+
+This code is receiving data properly..but this program is just to send a single command..when i am using the same logic in the main file
+which i have created('scratc 31') then there using the same logic bytes are missing...
