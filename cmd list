@@ -1,0 +1,224 @@
+TestCase1_Scenario_1
+A1 D0 00 00 00 00
+0x9001
+TestCase1_Scenario_2
+A2 D0 00 00 00 00
+0x6e00
+TestCase1_Scenario_3
+A1 B0 00 00 00 00
+0x6c00
+TestCase1_Scenario_4
+A1 D0 01 01 00 00
+0x6d00
+TestCase1_Scenario_5
+A1 D0 00 00 01 00
+0x6b00
+this is the file containing list of commands which i am sending serially one by one(its name is discoversign.txt)..and the code which i have done is as follows:
+
+
+import serial
+import time
+cmdHdr=[]
+cmdLenSet=0
+cmdLenGet=0
+dataBufSet=""
+dataBufGet=""
+statusWordSet=""
+statusWordGet=""
+##########################################Initialize Serial Port#############################################
+def initPort(portNum,baud):
+    global ser
+    ser=serial.Serial(port=portNum,baudrate=baud,timeout=1)
+    return ser
+
+ser=initPort('COM5',57600)
+##########################################Read Byte From File###################################################
+def readByteFromFile(filename,lineno,offset):
+    if offset==0:
+        with open(filename,'r') as f:
+            lines=f.readlines()
+        return (lines[lineno][offset],lines[lineno][offset+1])
+
+    else:
+        with open(filename,'r') as f:
+            offset=offset*3                                           ##if there is no spacing in command then use offset=offset*2
+            lines=f.readlines()
+        return (lines[lineno][offset],lines[lineno][offset+1])
+
+
+
+#print("".join(readByteFromFile('discoversign.txt',1,1)))
+#########################################Read Line From File####################################################
+def readLineFromFile(filename,lineno):
+    with open(filename,'r') as f:
+        lines=f.readlines()
+    return lines[lineno]
+
+#print(readLineFromFile('discoversign.txt',0))
+####################################Conversion of string received from file to int#################################
+def cmdToInt(cmd):
+    a=cmd.split(" ")
+    cmd_int=[]
+    for i in range(len(a)):
+        cmd_int.append(int(a[i],16))
+    return cmd_int
+######################################Count Number of lines in a File###############################################
+def countLines(fname):
+    with open(fname) as f:
+        return len(f.readlines())
+######################################Conversion of int cmd to hex form#############################################
+def intToHex(cmd):
+    cmd_hex=[]
+    for i in range(len(cmd)):
+        cmd_hex.append(hex(cmd[i]))
+    return cmd_hex
+
+###################################################Set and Get Command Header#####################################################
+def setCmdHdr(cmd):
+    global cmdHdr
+    for i in range(len(cmd)):
+        cmdHdr=cmd
+    return cmdHdr
+
+def getCmdHdr():
+    global cmdHdr
+    global getCmdBuff
+    for i in range(len(cmdHdr)):
+        getCmdBuff=cmdHdr
+    return getCmdBuff
+#################################################Set and Get Command Length#######################################################
+def setCmdLength(cmd):
+    global cmdLenSet
+    cmdLenSet=cmd[4:6]
+    return cmdLenSet
+
+def getCmdLength():
+    global cmdLenSet
+    global cmdLenGet
+    cmdLenGet=cmdLenSet
+    return cmdLenGet
+#################################################Set and Get Data Bufer############################################################
+def setDataBuff(cmd):
+    global dataBufSet
+    dataBufSet=cmd[6:]
+    return dataBufSet
+
+def getDataBuff():
+    global dataBufSet
+    global dataBufGet
+    dataBufGet=dataBufSet
+    return dataBufGet
+###############################################Status Word Buffer#################################################################
+def setSw1Sw2(cmd):
+    pass
+
+def getSw1Sw1():
+    pass
+##############################################Response of Command#################################################################
+def recvResponse():
+    ser.write(serial.to_bytes(intCmd))
+    time.sleep(1)
+    data_recv=ser.read(2)
+    return data_recv
+##############################################Test Status/Results of Commands#####################################################
+def cmdResult(response):
+    if cmdHex[0]=='0xa2':                               #Class Byte Mismatch
+        if response=='0x6e00':
+            return 'Test Pass'
+        else:
+            return 'Test Fail'
+    elif cmdHex[1]=='0xb0':                               #Inst Byte Mismatch
+        if response=='0x6c00':
+            return 'Test Pass'
+        else:
+            return 'Test Fail'
+    elif cmdHex[2]=='0x1' and cmdHex[3]=='0x1':
+        if response=='0x6d00':
+            return 'Test Pass'
+        else:
+            return 'Test Fail'
+    elif cmdHex[4]=='0x1' and cmdHex[5]=='0x0':
+        if response=='0x6b00':
+            return 'Test Pass'
+        else:
+            return 'Test Fail'
+    else:
+        if response=='0x9001':
+            return 'Test Pass'
+        else:
+            return 'Test Fail'
+
+##############################################LogFile Formatting##################################################################
+def p1():
+    f1.write("#"*50)
+    f1.write('\n')
+    f1.write(" "*5+"TestCase DiscoverSignId Command")
+    f1.write('\n')
+    f1.write("#"*50)
+    f1.write('\n')
+
+def p2(scenarioName):
+    f1.write("*"*50)
+    f1.write('\n')
+    f1.write(" "*10+scenarioName)
+    f1.write('\n')
+    f1.write("*"*50)
+    f1.write('\n')
+
+def p3(cmd):
+    f1.write("PreReq")
+    f1.write('\n')
+    f1.write("-"*50)
+    f1.write('\n')
+    f1.write("//DiscoverSignId")
+    f1.write('\n')
+    f1.write("->"+cmd)
+    f1.write('\n')
+
+def p4(r,e):
+    f1.write("Resp: "+r)
+    f1.write('\n')
+    f1.write("Exp Resp: "+e)
+    f1.write('\n')
+    if resp==expResp:
+        f1.write("Test Case Pass")
+    else:
+        f1.write("Test Case Fail")
+    f1.write('\n')
+
+
+
+
+##############################################Command Execution###################################################################
+f1=open('discoverSignResult.txt','a')
+lineCount=countLines('discoversign.txt')
+
+p1()
+for i in range(0,lineCount,3):
+    print(readLineFromFile('discoversign.txt',i))
+    p2(readLineFromFile('discoversign.txt',i))
+    readFileLine=readLineFromFile('discoversign.txt',i+1)
+    p3(readFileLine)
+    intCmd=cmdToInt(readFileLine)
+    cmdHex=intToHex(intCmd)
+    print("//DiscoverSign Id")
+    print(intToHex(intCmd))
+    setCmdHdr(intCmd)
+    getCmdHdr()
+    setCmdLength(cmdHex)
+    getCmdLength()
+    setDataBuff(intCmd)
+    getDataBuff()
+    recvResponse()
+    time.sleep(0.5)
+    resp=hex(int.from_bytes(recvResponse(),byteorder='little'))
+    print(resp)
+    expResp=readLineFromFile('discoversign.txt',i+2).rstrip('\n')
+    p4(resp,expResp)
+
+f1.close()
+
+>>When i am seeing through flash magic terminal(software) it is showing each command is executed multiple times..which needs to be executed only once..
+i have maintained the same baudrate also..
+At the end i am creating a log file in which i am testing the response received with the expected response..compare both of them 
+and showing pass fail status..there also the command is printed only once..
